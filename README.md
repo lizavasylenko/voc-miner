@@ -24,9 +24,24 @@ See [`sample_report.md`](sample_report.md) for a full example, built from a synt
 
 ## Quick start
 
-You do not need to code. Pick one way.
+### In your browser (easiest, free, nothing to install)
 
-### Option A: copy and paste (no API key, no cost beyond your AI chat)
+Open **https://lizavasylenko.github.io/voc-miner/** and click "Try with example reviews" to see the whole flow in 10 seconds. With your own data:
+
+1. Paste your reviews, one per line, and click "Create prompt".
+2. Copy the prompt into any AI chat (Claude, ChatGPT, anything).
+3. Paste the AI's answer back and click "Check quotes".
+4. Copy the report or download it as Markdown.
+
+The page runs entirely in your browser. Your reviews are not uploaded anywhere by this page. Be careful what you paste into the AI chat itself: no names, emails or other personal data. The page works offline too: download `index.html` and open it.
+
+The browser version also accepts a quote written with `...` if every part appears in the review, in order. The Python script below matches whole quotes only.
+
+### With Python (optional)
+
+Pick one way.
+
+#### Option A: copy and paste (no API key, no cost beyond your AI chat)
 
 1. Put your reviews in a CSV file with a column called `review`. Reviews that contain commas must be wrapped in double quotes.
 2. Run `python voc_miner.py your_reviews.csv --print-prompt`
@@ -34,7 +49,7 @@ You do not need to code. Pick one way.
 4. Run `python voc_miner.py your_reviews.csv --analysis answer.json`
 5. Open `report.md`.
 
-### Option B: API mode
+#### Option B: API mode
 
 1. `pip install -r requirements.txt`
 2. Set your key: `export ANTHROPIC_API_KEY=your_key` (on Windows: `set ANTHROPIC_API_KEY=your_key`). Never commit the key to GitHub.
@@ -42,7 +57,7 @@ You do not need to code. Pick one way.
 
 The default model is set in the code and can be changed with the `VOC_MODEL` environment variable or `--model`. Check the current model names and prices in the provider documentation, because API use is billed.
 
-### Try the demo
+#### Try the demo
 
 ```
 python voc_miner.py sample_reviews_synthetic.csv --analysis sample_analysis.json
@@ -59,7 +74,7 @@ A theme with no verified quote is removed. Run the tests with `python -m unittes
 
 ## What was tested, and what was not
 
-- Tested: the verification logic, report building, CSV warnings and the copy-paste prompt (see `test_verify.py`).
+- Tested: the verification logic, report building, CSV warnings and the copy-paste prompt (see `test_verify.py`). The browser page was tested in headless Chromium at phone width: the example gives 22 of 22 verified quotes, an invented quote is dropped, curly quotes, case, dash differences and `...` are handled, HTML in the AI answer is not executed, and the Ukrainian toggle and Markdown download work. It has not been tested in Safari or Firefox.
 - The sample analysis (`sample_analysis.json`) was written by hand from the synthetic dataset to show the format. Its quotes are machine-verified, but it is not real model output.
 - Not tested live: the API call itself, because no API key was available during development. If it fails on your setup, use Option A and open an issue.
 
@@ -85,6 +100,9 @@ I am not claiming any savings. To measure your own:
 
 Monthly saving = (time by hand minus time with the tool) x runs per month x your hourly rate. Fill it in with your own numbers.
 
+## Built with AI assistance
+
+This project was built with help from an AI assistant and reviewed and tested by the author. [Add your own notes on what you changed.]
 
 ## Ideas for next versions
 
@@ -94,4 +112,4 @@ Monthly saving = (time by hand minus time with the tool) x runs per month x your
 
 ---
 
-Made by Yelyzaveta Vasylenko with AI help. B2B content and product marketer. [https://www.linkedin.com/in/yelyzaveta-vasylenko-111abc ]
+Made by Yelyzaveta Vasylenko. B2B content and product marketer. [LinkedIn link]
