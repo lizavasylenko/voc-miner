@@ -85,9 +85,6 @@ I am not claiming any savings. To measure your own:
 
 Monthly saving = (time by hand minus time with the tool) x runs per month x your hourly rate. Fill it in with your own numbers.
 
-## Built with AI assistance
-
-This project was built with help from an AI assistant and reviewed and tested by the author. [Add your own notes on what you changed.]
 
 ## Ideas for next versions
 
@@ -97,4 +94,4 @@ This project was built with help from an AI assistant and reviewed and tested by
 
 ---
 
-Made by Yelyzaveta Vasylenko. B2B content and product marketer. [LinkedIn link]
+Made by Yelyzaveta Vasylenko with AI help. B2B content and product marketer. [https://www.linkedin.com/in/yelyzaveta-vasylenko-111abc ]
