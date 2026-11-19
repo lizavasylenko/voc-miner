@@ -1,0 +1,88 @@
+{
+  "summary": "Customers like the timeline view and the comments feature. The main frustrations are slow and unreliable reporting, onboarding that leaves teams lost, seat pricing for small agencies and a weak mobile experience.",
+  "pains": [
+    {
+      "theme": "Slow, hard-to-trust reporting",
+      "quotes": [
+        {"review_id": 3, "quote": "Reports take forever to load once you have more than a few projects."},
+        {"review_id": 19, "quote": "Dashboard is slow and sometimes shows outdated numbers, so I double check everything in a spreadsheet."},
+        {"review_id": 10, "quote": "Exporting reports to PDF breaks the layout every single time."}
+      ]
+    },
+    {
+      "theme": "Onboarding leaves teams lost",
+      "quotes": [
+        {"review_id": 1, "quote": "The onboarding checklist skipped half the things I actually needed."},
+        {"review_id": 11, "quote": "Took two weeks before the team actually started using it."},
+        {"review_id": 17, "quote": "they stopped after day three and I was still lost."}
+      ]
+    },
+    {
+      "theme": "Seat pricing feels unfair for small agencies",
+      "quotes": [
+        {"review_id": 4, "quote": "Pricing jumps too fast when you add one more seat."},
+        {"review_id": 20, "quote": "We almost left because of the seat pricing."}
+      ]
+    },
+    {
+      "theme": "Weak mobile experience",
+      "quotes": [
+        {"review_id": 8, "quote": "No decent mobile app."},
+        {"review_id": 22, "quote": "Mobile notifications arrive hours late, which defeats the purpose."}
+      ]
+    },
+    {
+      "theme": "Hard to find old tasks",
+      "quotes": [
+        {"review_id": 13, "quote": "Great timeline, terrible search. I can never find an old task."}
+      ]
+    },
+    {
+      "theme": "Slow support on weekends",
+      "quotes": [
+        {"review_id": 14, "quote": "Support is slow on weekends."}
+      ]
+    }
+  ],
+  "desires": [
+    {
+      "theme": "Reusable templates",
+      "quotes": [
+        {"review_id": 6, "quote": "I wish there were ready-made templates for client onboarding."},
+        {"review_id": 15, "quote": "Templates would save me hours."}
+      ]
+    },
+    {
+      "theme": "Customizable client reporting",
+      "quotes": [
+        {"review_id": 24, "quote": "I would pay more if reporting could be customized for each client."},
+        {"review_id": 12, "quote": "I can't justify it to my boss without better reporting."}
+      ]
+    },
+    {
+      "theme": "Invoicing integration",
+      "quotes": [
+        {"review_id": 16, "quote": "Integration with our invoicing tool would be a dream."}
+      ]
+    }
+  ],
+  "objections": [
+    {
+      "theme": "Competitors offer cheaper guest access",
+      "quotes": [
+        {"review_id": 20, "quote": "Another tool offers unlimited guests for free."}
+      ]
+    },
+    {
+      "theme": "Hard to prove the value to management",
+      "quotes": [
+        {"review_id": 12, "quote": "I can't justify it to my boss without better reporting."}
+      ]
+    }
+  ],
+  "reusable_phrases": [
+    {"review_id": 2, "quote": "I can finally see who is overloaded without asking anyone.", "use_in": "headline or LinkedIn hook"},
+    {"review_id": 23, "quote": "Switched from spreadsheets and never looked back.", "use_in": "testimonial-style line on a landing page"},
+    {"review_id": 18, "quote": "it keeps client feedback in one place instead of scattered across email.", "use_in": "feature description"}
+  ]
+}
