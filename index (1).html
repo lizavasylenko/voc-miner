@@ -1,0 +1,569 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Voice-of-Customer Checker</title>
+<meta name="description" content="Paste customer reviews, get a prompt for any AI chat, then check that every quote the AI gives really exists in your reviews. Runs in your browser.">
+<style>
+  :root {
+    --bg: #f7f6f3;
+    --card: #ffffff;
+    --text: #1c1b19;
+    --muted: #6a675f;
+    --line: #e2dfd8;
+    --accent: #1f5f4a;
+    --accent-text: #ffffff;
+    --ok: #1f6b45;
+    --ok-bg: #e6f3ec;
+    --bad: #9a3326;
+    --bad-bg: #f9e8e5;
+    --quote: #f1efe9;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #151513; --card: #1e1e1b; --text: #eceae4; --muted: #a09d94; --line: #34332e;
+      --accent: #5bbf99; --accent-text: #0e1a15; --ok: #7fd1a8; --ok-bg: #1c2d25;
+      --bad: #f0988a; --bad-bg: #33201d; --quote: #26251f;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  main { max-width: 760px; margin: 0 auto; padding: 24px 16px 64px; }
+  header { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; }
+  h1 { font-size: 1.6rem; line-height: 1.2; margin: 0 0 8px; }
+  .sub { color: var(--muted); margin: 0 0 24px; }
+  .lang { display: flex; gap: 4px; flex-shrink: 0; }
+  .lang button { padding: 6px 10px; font-size: .85rem; background: transparent; color: var(--muted); border: 1px solid var(--line); border-radius: 6px; cursor: pointer; }
+  .lang button[aria-pressed="true"] { color: var(--text); border-color: var(--text); }
+  section.card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 18px; margin-bottom: 16px; }
+  h2 { font-size: 1.1rem; margin: 0 0 4px; }
+  h3 { font-size: 1rem; margin: 20px 0 8px; }
+  .hint { color: var(--muted); font-size: .9rem; margin: 0 0 10px; }
+  textarea {
+    width: 100%; min-height: 150px; resize: vertical; padding: 10px; font: inherit; font-size: .95rem;
+    color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
+  }
+  textarea:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
+  button.primary { background: var(--accent); color: var(--accent-text); border: 0; border-radius: 8px; padding: 10px 16px; font: inherit; font-weight: 600; cursor: pointer; }
+  button.secondary { background: transparent; color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 9px 14px; font: inherit; cursor: pointer; }
+  .note { font-size: .88rem; color: var(--muted); }
+  .error { color: var(--bad); font-size: .92rem; margin-top: 8px; }
+  .stats { padding: 12px 14px; border-radius: 8px; background: var(--ok-bg); color: var(--ok); font-weight: 600; }
+  .stats.warn { background: var(--bad-bg); color: var(--bad); }
+  blockquote { margin: 6px 0; padding: 8px 12px; background: var(--quote); border-left: 3px solid var(--accent); border-radius: 4px; overflow-wrap: anywhere; }
+  blockquote span { color: var(--muted); font-size: .85rem; white-space: nowrap; }
+  .theme-title { font-weight: 600; margin-top: 14px; }
+  .theme-count { color: var(--muted); font-weight: 400; font-size: .9rem; }
+  ul.dropped { padding-left: 20px; margin: 6px 0; }
+  ul.dropped li { margin-bottom: 4px; overflow-wrap: anywhere; }
+  [hidden] { display: none !important; }
+  footer { color: var(--muted); font-size: .85rem; margin-top: 24px; }
+  footer a { color: inherit; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <h1 data-i18n="title">Voice-of-Customer Checker</h1>
+      <p class="sub" data-i18n="sub"></p>
+    </div>
+    <div class="lang" role="group" aria-label="Language">
+      <button type="button" data-lang="en" aria-pressed="true">EN</button>
+      <button type="button" data-lang="ua" aria-pressed="false">UA</button>
+    </div>
+  </header>
+
+  <section class="card" aria-labelledby="s1">
+    <h2 id="s1" data-i18n="step1"></h2>
+    <p class="hint" data-i18n="hint1"></p>
+    <label for="reviews" class="hint" data-i18n="reviewsLabel"></label>
+    <textarea id="reviews" spellcheck="false"></textarea>
+    <div class="row">
+      <button type="button" class="primary" id="makePrompt" data-i18n="makePrompt"></button>
+      <button type="button" class="secondary" id="example" data-i18n="example"></button>
+      <span class="note" id="count"></span>
+    </div>
+    <div class="error" id="err1" role="alert"></div>
+    <div id="promptBox" hidden>
+      <h3 data-i18n="promptTitle"></h3>
+      <textarea id="prompt" readonly spellcheck="false"></textarea>
+      <div class="row">
+        <button type="button" class="secondary" id="copyPrompt" data-i18n="copy"></button>
+      </div>
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="s2">
+    <h2 id="s2" data-i18n="step2"></h2>
+    <p class="hint" data-i18n="hint2"></p>
+    <label for="answer" class="hint" data-i18n="answerLabel"></label>
+    <textarea id="answer" spellcheck="false"></textarea>
+    <div class="row">
+      <button type="button" class="primary" id="check" data-i18n="check"></button>
+    </div>
+    <div class="error" id="err2" role="alert"></div>
+  </section>
+
+  <section class="card" id="results" aria-labelledby="s3" hidden>
+    <h2 id="s3" data-i18n="step3"></h2>
+    <div id="report"></div>
+    <div class="row">
+      <button type="button" class="secondary" id="copyReport" data-i18n="copyReport"></button>
+      <button type="button" class="secondary" id="download" data-i18n="download"></button>
+    </div>
+  </section>
+
+  <footer>
+    <p data-i18n="foot"></p>
+    <p>Made by Yelyzaveta Vasylenko. Made with AI help. <a href="https://github.com/lizavasylenko/voc-miner">Source code</a></p>
+  </footer>
+</main>
+
+<script>
+(function () {
+  "use strict";
+
+  var MIN_WORDS = 3;
+  var MAX_REVIEWS = 200;
+  var SECTIONS = ["pains", "desires", "objections"];
+
+  var STRINGS = {
+    en: {
+      title: "Voice-of-Customer Checker",
+      sub: "Paste customer reviews, get a prompt for any AI chat, then check that every quote the AI gives really exists in your reviews. Runs in your browser. Nothing is uploaded.",
+      step1: "1. Paste your reviews",
+      hint1: "Do not paste personal data (names, emails). Use reviews you are allowed to use.",
+      reviewsLabel: "One review per line",
+      makePrompt: "Create prompt",
+      example: "Try with example reviews",
+      promptTitle: "Copy this into any AI chat",
+      copy: "Copy",
+      copied: "Copied",
+      step2: "2. Paste the AI's answer",
+      hint2: "Copy the whole answer from the AI chat, even if it looks like code, and paste it here.",
+      answerLabel: "AI answer",
+      check: "Check quotes",
+      step3: "3. Result",
+      copyReport: "Copy report",
+      download: "Download .md",
+      foot: "Counts are lower bounds: only reviews with a verified quote are counted. The check proves a quote exists in the review you cited. It does not prove the AI put it under the right theme, so read the quotes yourself. A quote with \"...\" is accepted if every part appears in the review, in order.",
+      noReviews: "Paste your reviews first, one per line.",
+      tooMany: "Only the first 200 reviews are used.",
+      noAnswer: "Paste the AI's answer first.",
+      badJson: "Could not read this answer. Copy the whole reply from the AI chat and paste it again.",
+      reviewsCount: "{n} reviews",
+      reviewsCountCapped: "{n} reviews (first {m} used)",
+      summary: "Summary",
+      pains: "Pains",
+      desires: "Desires",
+      objections: "Objections",
+      phrases: "Customer phrases worth reusing",
+      verifiedIn: "verified in {m} of {n} reviews",
+      useIn: "Use in",
+      verification: "Verification",
+      stats: "{k} of {t} quotes matched your reviews word for word. {d} items were dropped.",
+      dropped: "Dropped items",
+      review: "review",
+      reasons: {
+        id: "review number does not exist",
+        short: "quote too short",
+        missing: "quote not found in the cited review",
+        parts: "a part of the quote is too short",
+        theme: "no verified quote"
+      }
+    },
+    ua: {
+      title: "Перевірка голосу клієнта",
+      sub: "Встав відгуки клієнтів, отримай запит для будь-якого AI-чату, а потім перевір, що кожна цитата від AI справді є у відгуках. Працює у браузері. Нічого нікуди не надсилається.",
+      step1: "1. Встав відгуки",
+      hint1: "Не вставляй персональні дані (імена, пошти). Використовуй відгуки, які дозволено використовувати.",
+      reviewsLabel: "Один відгук в одному рядку",
+      makePrompt: "Створити запит",
+      example: "Спробувати на прикладі",
+      promptTitle: "Скопіюй це в будь-який AI-чат",
+      copy: "Копіювати",
+      copied: "Скопійовано",
+      step2: "2. Встав відповідь AI",
+      hint2: "Скопіюй усю відповідь з AI-чату, навіть якщо вона схожа на код, і встав сюди.",
+      answerLabel: "Відповідь AI",
+      check: "Перевірити цитати",
+      step3: "3. Результат",
+      copyReport: "Копіювати звіт",
+      download: "Завантажити .md",
+      foot: "Підрахунок це нижня межа: враховано лише відгуки з підтвердженою цитатою. Перевірка доводить, що цитата є у відгуку, який назвав AI. Вона не доводить, що тема визначена правильно, тож прочитай цитати сам(а). Цитата з \"...\" приймається, якщо кожна її частина є у відгуку по порядку.",
+      noReviews: "Спочатку встав відгуки, по одному в рядок.",
+      tooMany: "Використано лише перші 200 відгуків.",
+      noAnswer: "Спочатку встав відповідь AI.",
+      badJson: "Не вдалося прочитати цю відповідь. Скопіюй усю відповідь з AI-чату і встав ще раз.",
+      reviewsCount: "Відгуків: {n}",
+      reviewsCountCapped: "Відгуків: {n} (використано перші {m})",
+      summary: "Підсумок",
+      pains: "Болі",
+      desires: "Бажання",
+      objections: "Заперечення",
+      phrases: "Фрази клієнтів, які варто використати",
+      verifiedIn: "підтверджено у {m} з {n} відгуків",
+      useIn: "Використати в",
+      verification: "Перевірка",
+      stats: "{k} з {t} цитат збіглися з відгуками слово в слово. Відхилено пунктів: {d}.",
+      dropped: "Відхилені пункти",
+      review: "відгук",
+      reasons: {
+        id: "такого номера відгуку немає",
+        short: "цитата надто коротка",
+        missing: "цитати немає у вказаному відгуку",
+        parts: "частина цитати надто коротка",
+        theme: "немає підтвердженої цитати"
+      }
+    }
+  };
+
+  var EXAMPLE_REVIEWS = [
+    "Setup took me a whole afternoon. The onboarding checklist skipped half the things I actually needed.",
+    "The timeline view is the reason we switched. I can finally see who is overloaded without asking anyone.",
+    "Reports take forever to load once you have more than a few projects.",
+    "Pricing jumps too fast when you add one more seat. For a five-person agency it feels unfair.",
+    "Support replied in under an hour and actually solved the problem. Rare these days.",
+    "I wish there were ready-made templates for client onboarding. I rebuild the same project every time.",
+    "The Slack integration is great but notifications are way too noisy.",
+    "No decent mobile app. I can't update a task when I'm at a client meeting.",
+    "We love how clean the interface looks, but my team still asks where to find things.",
+    "Exporting reports to PDF breaks the layout every single time.",
+    "Took two weeks before the team actually started using it. Nobody understood what the tool wanted from them.",
+    "The price is fine for what it does, but I can't justify it to my boss without better reporting.",
+    "Great timeline, terrible search. I can never find an old task.",
+    "Support is slow on weekends. We had a client deadline on Saturday and heard nothing until Monday.",
+    "Templates would save me hours. Right now every new client means starting from scratch.",
+    "Integration with our invoicing tool would be a dream. I copy numbers by hand every month.",
+    "Honestly the onboarding emails were helpful, but they stopped after day three and I was still lost.",
+    "The comments feature is lovely, it keeps client feedback in one place instead of scattered across email.",
+    "Dashboard is slow and sometimes shows outdated numbers, so I double check everything in a spreadsheet.",
+    "We almost left because of the seat pricing. Another tool offers unlimited guests for free.",
+    "I need clearer permissions. Freelancers should not see every client project.",
+    "Mobile notifications arrive hours late, which defeats the purpose.",
+    "Switched from spreadsheets and never looked back. The timeline view alone is worth it.",
+    "I would pay more if reporting could be customized for each client."
+  ];
+  var EXAMPLE_ANSWER = "{\n  \"summary\": \"Customers like the timeline view and the comments feature. The main frustrations are slow and unreliable reporting, onboarding that leaves teams lost, seat pricing for small agencies and a weak mobile experience.\",\n  \"pains\": [\n    {\n      \"theme\": \"Slow, hard-to-trust reporting\",\n      \"quotes\": [\n        {\n          \"review_id\": 3,\n          \"quote\": \"Reports take forever to load once you have more than a few projects.\"\n        },\n        {\n          \"review_id\": 19,\n          \"quote\": \"Dashboard is slow and sometimes shows outdated numbers, so I double check everything in a spreadsheet.\"\n        },\n        {\n          \"review_id\": 10,\n          \"quote\": \"Exporting reports to PDF breaks the layout every single time.\"\n        }\n      ]\n    },\n    {\n      \"theme\": \"Onboarding leaves teams lost\",\n      \"quotes\": [\n        {\n          \"review_id\": 1,\n          \"quote\": \"The onboarding checklist skipped half the things I actually needed.\"\n        },\n        {\n          \"review_id\": 11,\n          \"quote\": \"Took two weeks before the team actually started using it.\"\n        },\n        {\n          \"review_id\": 17,\n          \"quote\": \"they stopped after day three and I was still lost.\"\n        }\n      ]\n    },\n    {\n      \"theme\": \"Seat pricing feels unfair for small agencies\",\n      \"quotes\": [\n        {\n          \"review_id\": 4,\n          \"quote\": \"Pricing jumps too fast when you add one more seat.\"\n        },\n        {\n          \"review_id\": 20,\n          \"quote\": \"We almost left because of the seat pricing.\"\n        }\n      ]\n    },\n    {\n      \"theme\": \"Weak mobile experience\",\n      \"quotes\": [\n        {\n          \"review_id\": 8,\n          \"quote\": \"No decent mobile app.\"\n        },\n        {\n          \"review_id\": 22,\n          \"quote\": \"Mobile notifications arrive hours late, which defeats the purpose.\"\n        }\n      ]\n    },\n    {\n      \"theme\": \"Hard to find old tasks\",\n      \"quotes\": [\n        {\n          \"review_id\": 13,\n          \"quote\": \"Great timeline, terrible search. I can never find an old task.\"\n        }\n      ]\n    },\n    {\n      \"theme\": \"Slow support on weekends\",\n      \"quotes\": [\n        {\n          \"review_id\": 14,\n          \"quote\": \"Support is slow on weekends.\"\n        }\n      ]\n    }\n  ],\n  \"desires\": [\n    {\n      \"theme\": \"Reusable templates\",\n      \"quotes\": [\n        {\n          \"review_id\": 6,\n          \"quote\": \"I wish there were ready-made templates for client onboarding.\"\n        },\n        {\n          \"review_id\": 15,\n          \"quote\": \"Templates would save me hours.\"\n        }\n      ]\n    },\n    {\n      \"theme\": \"Customizable client reporting\",\n      \"quotes\": [\n        {\n          \"review_id\": 24,\n          \"quote\": \"I would pay more if reporting could be customized for each client.\"\n        },\n        {\n          \"review_id\": 12,\n          \"quote\": \"I can't justify it to my boss without better reporting.\"\n        }\n      ]\n    },\n    {\n      \"theme\": \"Invoicing integration\",\n      \"quotes\": [\n        {\n          \"review_id\": 16,\n          \"quote\": \"Integration with our invoicing tool would be a dream.\"\n        }\n      ]\n    }\n  ],\n  \"objections\": [\n    {\n      \"theme\": \"Competitors offer cheaper guest access\",\n      \"quotes\": [\n        {\n          \"review_id\": 20,\n          \"quote\": \"Another tool offers unlimited guests for free.\"\n        }\n      ]\n    },\n    {\n      \"theme\": \"Hard to prove the value to management\",\n      \"quotes\": [\n        {\n          \"review_id\": 12,\n          \"quote\": \"I can't justify it to my boss without better reporting.\"\n        }\n      ]\n    }\n  ],\n  \"reusable_phrases\": [\n    {\n      \"review_id\": 2,\n      \"quote\": \"I can finally see who is overloaded without asking anyone.\",\n      \"use_in\": \"headline or LinkedIn hook\"\n    },\n    {\n      \"review_id\": 23,\n      \"quote\": \"Switched from spreadsheets and never looked back.\",\n      \"use_in\": \"testimonial-style line on a landing page\"\n    },\n    {\n      \"review_id\": 18,\n      \"quote\": \"it keeps client feedback in one place instead of scattered across email.\",\n      \"use_in\": \"feature description\"\n    }\n  ]\n}";
+
+  var PROMPT = [
+    "You are a customer research analyst. You receive numbered customer reviews in the form [1] text, [2] text, and so on.",
+    "",
+    "Find recurring pains, desires and objections, and customer phrases that a marketer could reuse in copy.",
+    "",
+    "RULES",
+    "- Use ONLY what is written in the reviews. Do not add facts, numbers, brand names or assumptions.",
+    "- Every theme must be supported by one or more QUOTES copied word for word from the reviews. Do not paraphrase inside a quote and do not fix spelling.",
+    "- Each quote must be at least three words and must come from the review whose number you give.",
+    "- Do not count mentions yourself. The tool counts verified quotes.",
+    "- If a theme has fewer than two supporting reviews, still include it only if the point is clearly important, and say nothing beyond what the quotes show.",
+    "- Write the summary, theme names and use_in in the language of the reviews. Quotes stay exactly as written in the reviews.",
+    "- Answer with a single JSON object and nothing else.",
+    "",
+    "JSON FORMAT",
+    "{",
+    "  \"summary\": \"2 or 3 plain sentences about the main picture\",",
+    "  \"pains\": [",
+    "    {\"theme\": \"short name\", \"quotes\": [{\"review_id\": 1, \"quote\": \"exact words from review 1\"}]}",
+    "  ],",
+    "  \"desires\": [",
+    "    {\"theme\": \"short name\", \"quotes\": [{\"review_id\": 2, \"quote\": \"exact words from review 2\"}]}",
+    "  ],",
+    "  \"objections\": [",
+    "    {\"theme\": \"short name\", \"quotes\": [{\"review_id\": 3, \"quote\": \"exact words from review 3\"}]}",
+    "  ],",
+    "  \"reusable_phrases\": [",
+    "    {\"review_id\": 4, \"quote\": \"exact words from review 4\", \"use_in\": \"where a marketer could use it, for example headline, LinkedIn hook, email subject\"}",
+    "  ]",
+    "}"
+  ].join("\n");
+
+  // ---------- core logic (kept free of the page so it can be tested) ----------
+
+  function normalize(text) {
+    return String(text)
+      .replace(/[‘’]/g, "'")
+      .replace(/[“”]/g, '"')
+      .replace(/[–—−]/g, "-")
+      .replace(/\s+/g, " ")
+      .trim()
+      .toLowerCase();
+  }
+
+  function wordCount(text) {
+    return String(text).split(/\s+/).filter(Boolean).length;
+  }
+
+  function parseReviews(text) {
+    return String(text).split(/\r?\n/).map(function (l) { return l.trim(); }).filter(Boolean);
+  }
+
+  function numbered(reviews) {
+    return reviews.map(function (r, i) { return "[" + (i + 1) + "] " + r; }).join("\n");
+  }
+
+  function extractJson(text) {
+    var start = text.indexOf("{");
+    var end = text.lastIndexOf("}");
+    if (start === -1 || end === -1 || end < start) throw new Error("no json");
+    return JSON.parse(text.slice(start, end + 1));
+  }
+
+  // Returns {ok: true} or {ok: false, reason: "id" | "short" | "parts" | "missing"}
+  function checkQuote(item, normReviews) {
+    var rid = typeof item.review_id === "string" && /^\d+$/.test(item.review_id.trim())
+      ? parseInt(item.review_id, 10) : item.review_id;
+    if (typeof rid !== "number" || !Number.isInteger(rid) || rid < 1 || rid > normReviews.length) {
+      return { ok: false, reason: "id" };
+    }
+    var raw = String(item.quote == null ? "" : item.quote);
+    var parts = raw.split(/\.{3}|…/).map(normalize).filter(Boolean);
+    if (wordCount(parts.join(" ")) < MIN_WORDS) return { ok: false, reason: "short" };
+    if (parts.length > 1 && parts.some(function (p) { return wordCount(p) < 2; })) {
+      return { ok: false, reason: "parts" };
+    }
+    var review = normReviews[rid - 1];
+    var pos = 0;
+    for (var i = 0; i < parts.length; i++) {
+      var found = review.indexOf(parts[i], pos);
+      if (found === -1) return { ok: false, reason: "missing" };
+      pos = found + parts[i].length;
+    }
+    return { ok: true };
+  }
+
+  function verify(analysis, reviews) {
+    var norm = reviews.map(normalize);
+    var dropped = [], total = 0, kept = 0;
+    var cleaned = { summary: typeof analysis.summary === "string" ? analysis.summary : "" };
+
+    SECTIONS.forEach(function (key) {
+      var out = [];
+      (Array.isArray(analysis[key]) ? analysis[key] : []).forEach(function (theme) {
+        var name = String((theme && theme.theme) || "?");
+        var good = [];
+        (Array.isArray(theme && theme.quotes) ? theme.quotes : []).forEach(function (q) {
+          total++;
+          var res = checkQuote(q || {}, norm);
+          if (res.ok) { kept++; good.push(q); }
+          else dropped.push({ section: key, theme: name, quote: String((q && q.quote) || ""), reason: res.reason });
+        });
+        if (good.length) out.push({ theme: name, quotes: good });
+        else dropped.push({ section: key, theme: name, quote: "", reason: "theme" });
+      });
+      cleaned[key] = out;
+    });
+
+    var phrases = [];
+    (Array.isArray(analysis.reusable_phrases) ? analysis.reusable_phrases : []).forEach(function (item) {
+      total++;
+      var res = checkQuote(item || {}, norm);
+      if (res.ok) { kept++; phrases.push(item); }
+      else dropped.push({ section: "reusable_phrases", theme: String((item && item.use_in) || "?"), quote: String((item && item.quote) || ""), reason: res.reason });
+    });
+    cleaned.reusable_phrases = phrases;
+    return { cleaned: cleaned, stats: { total: total, kept: kept, dropped: dropped } };
+  }
+
+  function mentions(theme) {
+    var ids = {};
+    theme.quotes.forEach(function (q) { ids[String(q.review_id)] = true; });
+    return Object.keys(ids).length;
+  }
+
+  window.VOC = { normalize: normalize, parseReviews: parseReviews, numbered: numbered, extractJson: extractJson,
+                 checkQuote: checkQuote, verify: verify, mentions: mentions };
+
+  // ---------- page ----------
+
+  var $ = function (id) { return document.getElementById(id); };
+  var lang = "en";
+  var lastReport = "";
+  var lastResult = null;
+  var lastN = 0;
+
+  function t(key, vars) {
+    var s = STRINGS[lang][key];
+    if (typeof s !== "string") return key;
+    Object.keys(vars || {}).forEach(function (k) { s = s.replace("{" + k + "}", vars[k]); });
+    return s;
+  }
+
+  function applyLang() {
+    document.documentElement.lang = lang === "ua" ? "uk" : "en";
+    document.querySelectorAll("[data-i18n]").forEach(function (el) {
+      var key = el.getAttribute("data-i18n");
+      if (STRINGS[lang][key]) el.textContent = STRINGS[lang][key];
+    });
+    document.querySelectorAll(".lang button").forEach(function (b) {
+      b.setAttribute("aria-pressed", String(b.getAttribute("data-lang") === lang));
+    });
+    updateCount();
+    if (lastResult) renderResult();
+  }
+
+  function currentReviews() {
+    var all = window.VOC.parseReviews($("reviews").value);
+    return { all: all, used: all.slice(0, MAX_REVIEWS) };
+  }
+
+  function updateCount() {
+    var r = currentReviews();
+    if (!r.all.length) { $("count").textContent = ""; return; }
+    $("count").textContent = r.all.length > MAX_REVIEWS
+      ? t("reviewsCountCapped", { n: r.all.length, m: MAX_REVIEWS })
+      : t("reviewsCount", { n: r.all.length });
+  }
+
+  function el(tag, text, cls) {
+    var e = document.createElement(tag);
+    if (text != null) e.textContent = text;
+    if (cls) e.className = cls;
+    return e;
+  }
+
+  function quoteBlock(q) {
+    var b = document.createElement("blockquote");
+    b.appendChild(document.createTextNode(String(q.quote) + " "));
+    b.appendChild(el("span", "(" + t("review") + " #" + q.review_id + ")"));
+    return b;
+  }
+
+  function renderResult() {
+    var cleaned = lastResult.cleaned, stats = lastResult.stats, n = lastN;
+    var box = $("report");
+    box.textContent = "";
+    var s = el("div", t("stats", { k: stats.kept, t: stats.total, d: stats.dropped.length }), "stats" + (stats.dropped.length ? " warn" : ""));
+    box.appendChild(s);
+
+    var md = ["# Voice-of-Customer report", "", n + " reviews.", ""];
+    if (cleaned.summary) {
+      box.appendChild(el("h3", t("summary")));
+      box.appendChild(el("p", cleaned.summary));
+      md.push("## Summary", "", cleaned.summary, "");
+    }
+    SECTIONS.forEach(function (key) {
+      var themes = cleaned[key];
+      if (!themes.length) return;
+      box.appendChild(el("h3", t(key)));
+      md.push("## " + STRINGS.en[key], "");
+      themes.slice().sort(function (a, b) { return window.VOC.mentions(b) - window.VOC.mentions(a); }).forEach(function (theme) {
+        var m = window.VOC.mentions(theme);
+        var title = el("div", theme.theme + " ", "theme-title");
+        title.appendChild(el("span", "(" + t("verifiedIn", { m: m, n: n }) + ")", "theme-count"));
+        box.appendChild(title);
+        md.push("### " + theme.theme + " (verified in " + m + " of " + n + " reviews)", "");
+        theme.quotes.forEach(function (q) {
+          box.appendChild(quoteBlock(q));
+          md.push("> " + q.quote + " (review #" + q.review_id + ")", "");
+        });
+      });
+    });
+    if (cleaned.reusable_phrases.length) {
+      box.appendChild(el("h3", t("phrases")));
+      md.push("## Customer phrases worth reusing", "");
+      cleaned.reusable_phrases.forEach(function (p) {
+        var b = quoteBlock(p);
+        if (p.use_in) b.appendChild(document.createTextNode(" " + t("useIn") + ": " + p.use_in));
+        box.appendChild(b);
+        md.push("- \"" + p.quote + "\" (review #" + p.review_id + "). Use in: " + (p.use_in || ""));
+      });
+      md.push("");
+    }
+    md.push("## Verification", "",
+      stats.kept + " of " + stats.total + " quotes matched the source reviews word for word. " + stats.dropped.length + " items were dropped.", "");
+    if (stats.dropped.length) {
+      box.appendChild(el("h3", t("dropped")));
+      var ul = el("ul", null, "dropped");
+      md.push("Dropped items:", "");
+      stats.dropped.forEach(function (d) {
+        var line = "[" + d.section + "] " + d.theme + (d.quote ? ": \"" + d.quote + "\"" : "") + " (" + STRINGS[lang].reasons[d.reason] + ")";
+        ul.appendChild(el("li", line));
+        md.push("- [" + d.section + "] " + d.theme + (d.quote ? ": \"" + d.quote + "\"" : "") + " (" + STRINGS.en.reasons[d.reason] + ")");
+      });
+      box.appendChild(ul);
+      md.push("");
+    }
+    lastReport = md.join("\n");
+    $("results").hidden = false;
+  }
+
+  function flash(button, key) {
+    var old = button.textContent;
+    button.textContent = t(key);
+    setTimeout(function () { button.textContent = old; }, 1500);
+  }
+
+  function copyText(text, button) {
+    function fallback() {
+      var ta = document.createElement("textarea");
+      ta.value = text; document.body.appendChild(ta); ta.select();
+      try { document.execCommand("copy"); } catch (e) {}
+      document.body.removeChild(ta);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).catch(fallback);
+    } else { fallback(); }
+    flash(button, "copied");
+  }
+
+  $("reviews").addEventListener("input", updateCount);
+
+  $("makePrompt").addEventListener("click", function () {
+    var r = currentReviews();
+    $("err1").textContent = "";
+    if (!r.used.length) { $("err1").textContent = t("noReviews"); $("promptBox").hidden = true; return; }
+    if (r.all.length > MAX_REVIEWS) $("err1").textContent = t("tooMany");
+    $("prompt").value = PROMPT + "\n\nReviews:\n" + window.VOC.numbered(r.used);
+    $("promptBox").hidden = false;
+  });
+
+  $("example").addEventListener("click", function () {
+    $("reviews").value = EXAMPLE_REVIEWS.join("\n");
+    $("answer").value = EXAMPLE_ANSWER;
+    updateCount();
+    $("makePrompt").click();
+  });
+
+  $("copyPrompt").addEventListener("click", function () { copyText($("prompt").value, $("copyPrompt")); });
+
+  $("check").addEventListener("click", function () {
+    $("err2").textContent = "";
+    var r = currentReviews();
+    if (!r.used.length) { $("err2").textContent = t("noReviews"); return; }
+    var text = $("answer").value.trim();
+    if (!text) { $("err2").textContent = t("noAnswer"); return; }
+    var analysis;
+    try { analysis = window.VOC.extractJson(text); } catch (e) { $("err2").textContent = t("badJson"); return; }
+    lastResult = window.VOC.verify(analysis, r.used);
+    lastN = r.used.length;
+    renderResult();
+    $("results").scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+
+  $("copyReport").addEventListener("click", function () { copyText(lastReport, $("copyReport")); });
+
+  $("download").addEventListener("click", function () {
+    var blob = new Blob([lastReport], { type: "text/markdown" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "voc-report.md";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+  });
+
+  document.querySelectorAll(".lang button").forEach(function (b) {
+    b.addEventListener("click", function () { lang = b.getAttribute("data-lang"); applyLang(); });
+  });
+
+  applyLang();
+})();
+</script>
+</body>
+</html>
